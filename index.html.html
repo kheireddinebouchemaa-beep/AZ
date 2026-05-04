@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IMIR — Dashboard ECOTRACK</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0c10;--surface:#111318;--card:#161b24;--border:#1e2530;--green:#00d4aa;--red:#ff4d6d;--blue:#4a9eff;--yellow:#ffd166;--orange:#ff6b35;--purple:#b794f4;--text:#e8edf5;--muted:#6b7a92;--dim:#3d4a5c;--mono:'Space Mono',monospace;--sans:'DM Sans',sans-serif}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,212,170,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,170,.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+.wrap{position:relative;z-index:1;max-width:1400px;margin:0 auto;padding:0 24px 60px}
+header{display:flex;align-items:center;justify-content:space-between;padding:24px 0;border-bottom:1px solid var(--border);margin-bottom:24px;gap:16px;flex-wrap:wrap}
+.logo{background:var(--green);color:#000;font-family:var(--mono);font-weight:700;font-size:13px;padding:6px 14px;letter-spacing:2px;clip-path:polygon(0 0,calc(100% - 8px) 0,100% 8px,100% 100%,8px 100%,0 calc(100% - 8px))}
+.htitle{font-size:20px;font-weight:600}.hsub{font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:3px}
+.hlogo{display:flex;align-items:center;gap:14px}
+.pill{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--border);padding:8px 16px;font-size:11px;font-family:var(--mono);color:var(--muted)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--dim)}.dot.live{background:var(--green);box-shadow:0 0 8px var(--green);animation:blink 2s infinite}.dot.err{background:var(--red)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.flabel{font-size:10px;font-family:var(--mono);color:var(--muted);letter-spacing:1px;margin-bottom:7px}
+input[type=text],input[type=password],select{background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12px;padding:10px 14px;outline:none;width:100%;transition:border-color .2s;cursor:pointer}
+input:focus{border-color:var(--green)}
+.btn{background:var(--green);color:#000;border:none;font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:1px;padding:11px 28px;cursor:pointer;transition:all .2s;white-space:nowrap;clip-path:polygon(0 0,calc(100% - 8px) 0,100% 8px,100% 100%,8px 100%,0 calc(100% - 8px))}
+.btn:hover{background:#00ffcc}.btn:disabled{opacity:.4;cursor:not-allowed}
+.cfg{background:var(--card);border:1px solid var(--border);padding:20px 24px;margin-bottom:16px;display:grid;grid-template-columns:1fr 2fr auto auto;gap:14px;align-items:end}
+#loading{display:none;text-align:center;padding:50px;font-family:var(--mono);color:var(--muted)}
+.spin{width:36px;height:36px;border:2px solid var(--border);border-top-color:var(--green);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 16px}
+@keyframes spin{to{transform:rotate(360deg)}}
+#dash{display:none}
+.sec{margin-bottom:28px}
+.sec-title{font-family:var(--mono);font-size:10px;letter-spacing:3px;color:var(--muted);margin-bottom:14px;padding-left:10px;border-left:2px solid var(--green);display:flex;align-items:center;justify-content:space-between}
+.kgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:2px}
+.kcard{background:var(--card);border:1px solid var(--border);padding:20px;position:relative;overflow:hidden;transition:transform .2s,border-color .2s;animation:fadeup .4s ease both}
+.kcard:hover{transform:translateY(-2px);border-color:var(--c,var(--green))}.kcard::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--c,var(--green));transform:scaleX(0);transition:transform .3s;transform-origin:left}.kcard:hover::after{transform:scaleX(1)}
+@keyframes fadeup{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.klabel{font-size:9px;font-family:var(--mono);color:var(--muted);letter-spacing:2px;margin-bottom:8px}
+.kval{font-size:28px;font-weight:700;letter-spacing:-1px;line-height:1;margin-bottom:4px;color:var(--c,var(--text))}
+.ksub{font-size:10px;color:var(--muted);font-family:var(--mono)}.kicon{position:absolute;top:14px;right:14px;font-size:20px;opacity:.1}
+.bar-bg{height:3px;background:var(--border);margin-top:8px;overflow:hidden}
+.bar-fill{height:100%;transition:width 1.2s cubic-bezier(.4,0,.2,1);width:0}
+.tgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.tgrid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+.panel{background:var(--card);border:1px solid var(--border);padding:20px;animation:fadeup .4s ease both}
+.ptitle{font-family:var(--mono);font-size:10px;letter-spacing:3px;color:var(--muted);margin-bottom:16px;display:flex;justify-content:space-between;align-items:center}
+.badge{background:rgba(0,212,170,.1);color:var(--green);padding:2px 8px;font-size:9px;font-family:var(--mono)}
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{text-align:left;font-family:var(--mono);font-size:9px;letter-spacing:1px;color:var(--muted);padding-bottom:10px;border-bottom:1px solid var(--border);font-weight:400}
+.tbl td{padding:8px 0;border-bottom:1px solid rgba(30,37,48,.5)}
+.tbl tr:last-child td{border-bottom:none}.tbl tr:hover td{background:rgba(0,212,170,.02)}
+.tnum{font-family:var(--mono);font-weight:700}
+.tbadge{display:inline-block;padding:2px 7px;font-family:var(--mono);font-size:9px}
+.srow{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)}.srow:last-child{border-bottom:none}
+.sname{display:flex;align-items:center;gap:8px;font-size:13px}
+.sdot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.scount{font-family:var(--mono);font-size:14px;font-weight:700}
+.spct{font-family:var(--mono);font-size:9px;color:var(--muted);display:block;text-align:right}
+.bar-mini{height:2px;background:var(--border);margin-top:4px;overflow:hidden}
+.bar-mini-fill{height:100%;transition:width 1s ease;width:0}
+.alert-bar{background:rgba(255,77,109,.08);border:1px solid rgba(255,77,109,.3);border-left:3px solid var(--red);padding:12px 20px;margin-bottom:16px;font-size:13px;display:none}
+.alert-bar b{color:var(--red);font-family:var(--mono);font-size:10px;letter-spacing:1px;display:block;margin-bottom:6px}
+/* BOOKMARKLET BOX */
+.bm-box{background:var(--card);border:1px solid var(--border);padding:20px 24px;margin-bottom:16px}
+.bm-title{font-family:var(--mono);font-size:10px;letter-spacing:3px;color:var(--green);margin-bottom:12px}
+.bm-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.bm-step{background:var(--bg);border:1px solid var(--border);padding:14px;font-size:12px}
+.bm-step-num{font-family:var(--mono);font-size:20px;font-weight:700;color:var(--green);margin-bottom:6px}
+.bm-link{display:inline-block;background:var(--green);color:#000;font-family:var(--mono);font-size:11px;font-weight:700;padding:10px 20px;cursor:pointer;text-decoration:none;letter-spacing:1px;clip-path:polygon(0 0,calc(100% - 8px) 0,100% 8px,100% 100%,8px 100%,0 calc(100% - 8px))}
+.bm-link:hover{background:#00ffcc}
+/* DROP ZONE */
+.drop-zone{border:2px dashed var(--border);padding:30px;text-align:center;font-family:var(--mono);font-size:12px;color:var(--muted);cursor:pointer;transition:all .2s;margin-top:12px}
+.drop-zone:hover,.drop-zone.drag-over{border-color:var(--green);color:var(--green);background:rgba(0,212,170,.04)}
+.drop-zone input{display:none}
+/* PARCELS TABLE */
+.ptbl-wrap{overflow-x:auto;max-height:420px;overflow-y:auto}
+.ptbl{width:100%;border-collapse:collapse;font-size:11px;white-space:nowrap}
+.ptbl th{font-family:var(--mono);font-size:9px;letter-spacing:1px;color:var(--muted);padding:8px 10px;border-bottom:1px solid var(--border);font-weight:400;position:sticky;top:0;background:var(--card);text-align:left;cursor:pointer}
+.ptbl th:hover{color:var(--green)}
+.ptbl td{padding:7px 10px;border-bottom:1px solid rgba(30,37,48,.4)}
+.ptbl tr:hover td{background:rgba(0,212,170,.03)}
+.stag{display:inline-block;padding:2px 7px;font-family:var(--mono);font-size:9px;border-radius:2px}
+/* SEARCH */
+.search-bar{display:flex;gap:8px;margin-bottom:12px}
+.search-bar input{flex:1}
+.search-bar select{width:auto;min-width:140px}
+/* FOOTER */
+.foot{display:flex;justify-content:space-between;padding-top:20px;border-top:1px solid var(--border);font-size:10px;font-family:var(--mono);color:var(--dim);flex-wrap:wrap;gap:8px;margin-top:16px;align-items:center}
+.push-btn{background:var(--card);border:1px solid var(--border);color:var(--green);font-family:var(--mono);font-size:10px;padding:6px 14px;cursor:pointer;letter-spacing:1px}
+.push-btn:hover{border-color:var(--green)}
+@media(max-width:900px){.tgrid,.tgrid3{grid-template-columns:1fr}.cfg{grid-template-columns:1fr}.kgrid{grid-template-columns:repeat(2,1fr)}.bm-steps{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="hlogo">
+    <div class="logo">IMIR</div>
+    <div><div class="htitle">Dashboard KPI Complet</div><div class="hsub">ECOTRACK — API + CSV Auto</div></div>
+  </div>
+  <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+    <div class="pill"><div class="dot" id="dot"></div><span id="clbl">NON CONNECTÉ</span></div>
+    <div id="ts" style="font-family:var(--mono);font-size:10px;color:var(--dim)"></div>
+  </div>
+</header>
+
+<!-- CONFIG -->
+<div class="cfg">
+  <div><div class="flabel">BASE URL</div><input type="text" id="iurl" value="https://imir.ecotrack.dz"></div>
+  <div><div class="flabel">API KEY</div><input type="password" id="ikey" value="dpeBdkCphpGx89T0E1dNUfj2TzmvxIo4SI9BQF1clupBNKn6L3YZuCXAPcXa"></div>
+  <div><div class="flabel">AUTO-REFRESH</div>
+    <select id="ref-sel" onchange="changeRefresh()">
+      <option value="1800">30 min</option>
+      <option value="3600" selected>1 heure</option>
+      <option value="7200">2 heures</option>
+      <option value="14400">4 heures</option>
+      <option value="28800">8 heures</option>
+      <option value="0">Manuel</option>
+    </select>
+  </div>
+  <button class="btn" id="btn" onclick="go()">⟶ CHARGER</button>
+</div>
+
+<!-- EXPORT AUTO BOX -->
+<div class="bm-box">
+  <div class="bm-title">⚡ IMPORT AUTO DEPUIS ECOTRACK</div>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px">
+    <div>
+      <div class="flabel">STATUT</div>
+      <select id="exp-state" style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:11px;padding:8px 10px;width:100%">
+        <option value="">Tous</option>
+        <option value="1">Livrés</option>
+        <option value="2">Retours</option>
+        <option value="3">Reçus</option>
+      </select>
+    </div>
+    <div>
+      <div class="flabel">DATE DÉBUT</div>
+      <input type="date" id="exp-start" style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:11px;padding:8px 10px;width:100%">
+    </div>
+    <div>
+      <div class="flabel">DATE FIN</div>
+      <input type="date" id="exp-end" style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:11px;padding:8px 10px;width:100%">
+    </div>
+    <div style="display:flex;align-items:flex-end">
+      <button class="btn" onclick="fetchExcel()" style="width:100%">📥 IMPORTER</button>
+    </div>
+  </div>
+  <div id="exp-status" style="font-family:var(--mono);font-size:11px;color:var(--muted);margin-bottom:12px"></div>
+  <div class="drop-zone" id="drop-zone" onclick="document.getElementById('csv-input').click()">
+    <input type="file" id="csv-input" accept=".csv,.xlsx,.xls" onchange="handleFile(event)">
+    <div style="font-size:20px;margin-bottom:6px">📂</div>
+    <div>Ou glisse ton fichier Excel/CSV ici</div>
+    <div style="font-size:10px;margin-top:4px;color:var(--dim)">Export ECOTRACK .xlsx / .csv</div>
+  </div>
+</div>
+
+<div id="loading"><div class="spin"></div><div id="ltxt">Chargement...</div></div>
+<div class="alert-bar" id="alert-bar"><b>⚠ ALERTES</b><div id="alert-content"></div></div>
+
+<div id="dash">
+  <!-- KPIs API -->
+  <div class="sec">
+    <div class="sec-title">ACTIVITÉ DU JOUR (API) <span id="api-src" style="color:var(--dim);font-size:9px"></span></div>
+    <div class="kgrid" id="kgrid-api"></div>
+  </div>
+
+  <!-- KPIs CSV -->
+  <div class="sec" id="csv-sec" style="display:none">
+    <div class="sec-title">ANALYSE CSV COMPLÈTE <span id="csv-src" style="color:var(--dim);font-size:9px"></span></div>
+    <div class="kgrid" id="kgrid-csv"></div>
+  </div>
+
+  <!-- REPARTITION -->
+  <div class="sec">
+    <div class="sec-title">RÉPARTITION DÉTAILLÉE</div>
+    <div class="tgrid">
+      <div class="panel">
+        <div class="ptitle"><span>PAR STATUT</span><span class="badge" id="stat-total"></span></div>
+        <div id="stat-list"></div>
+      </div>
+      <div class="panel">
+        <div class="ptitle"><span id="p2-title">PAR WILAYA</span><span class="badge" id="p2-badge"></span></div>
+        <div id="p2-content"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WILAYA + STATION + COD CSV -->
+  <div class="sec" id="csv-detail-sec" style="display:none">
+    <div class="sec-title">ANALYSE PAR WILAYA / STATION / COD</div>
+    <div class="tgrid3">
+      <div class="panel">
+        <div class="ptitle"><span>TOP WILAYAS</span><span class="badge" id="wil-badge"></span></div>
+        <div id="wil-content"></div>
+      </div>
+      <div class="panel">
+        <div class="ptitle"><span>TOP STATIONS</span><span class="badge" id="sta-badge"></span></div>
+        <div id="sta-content"></div>
+      </div>
+      <div class="panel">
+        <div class="ptitle"><span>COD PAR STATUT</span><span class="badge" id="cod-badge"></span></div>
+        <div id="cod-content"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- COLIS TABLE -->
+  <div class="sec" id="parcels-sec" style="display:none">
+    <div class="sec-title">LISTE DES COLIS <span id="parcels-count" style="color:var(--dim);font-size:9px"></span></div>
+    <div class="search-bar">
+      <input type="text" id="search-input" placeholder="Rechercher tracking, nom, wilaya..." oninput="filterTable()">
+      <select id="filter-status" onchange="filterTable()"><option value="">Tous statuts</option></select>
+      <select id="filter-wilaya" onchange="filterTable()"><option value="">Toutes wilayas</option></select>
+    </div>
+    <div class="panel" style="padding:0">
+      <div class="ptbl-wrap">
+        <table class="ptbl">
+          <thead><tr id="ptbl-head"></tr></thead>
+          <tbody id="ptbl-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="foot" id="foot" style="display:none">
+  <span>AZ FULFILLMENT — ECOTRACK</span>
+  <span id="next-refresh" style="color:var(--green)"></span>
+  <div style="display:flex;align-items:center;gap:10px">
+    <span id="wb-status" style="color:var(--muted)"></span>
+    <button class="push-btn" onclick="pushN8N()">↗ N8N</button>
+    <button class="push-btn" onclick="go()">↺ REFRESH</button>
+  </div>
+</div>
+
+</div>
+<script>
+const N8N = 'https://autoimir.app.n8n.cloud/webhook/728481f6-ec2b-4a76-a7db-9a296662c378';
+const BASE = () => document.getElementById('iurl').value.trim().replace(/\/$/,'');
+const KEY  = () => document.getElementById('ikey').value.trim();
+
+// ── DATES PAR DÉFAUT ──
+const today = new Date().toISOString().split('T')[0];
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('exp-start').value = today;
+  document.getElementById('exp-end').value   = today;
+});
+
+// ── FETCH EXCEL DIRECT DEPUIS ECOTRACK ──
+async function fetchExcel() {
+  const base   = BASE();
+  const state  = document.getElementById('exp-state').value;
+  const dstart = document.getElementById('exp-start').value || today;
+  const dend   = document.getElementById('exp-end').value   || today;
+  const status = document.getElementById('exp-status');
+
+  status.textContent = '⏳ Connexion à ECOTRACK...';
+  status.style.color = 'var(--muted)';
+
+  try {
+    // STEP 1 : Récupérer le token CSRF depuis la page export
+    status.textContent = '⏳ Récupération du token CSRF...';
+    const pageResp = await fetch(`${base}/admin/excel/data`, {
+      credentials: 'include',
+      headers: { 'Accept': 'text/html' }
+    });
+
+    if (!pageResp.ok) throw new Error('Impossible d\'accéder à la page export ('+pageResp.status+'). Assurez-vous d\'être connecté sur ECOTRACK dans ce navigateur.');
+
+    const html  = await pageResp.text();
+    const match = html.match(/name="_token"\s+value="([^"]+)"/);
+    if (!match) throw new Error('Token CSRF introuvable. Reconnectez-vous sur ECOTRACK.');
+    const token = match[1];
+
+    // STEP 2 : POST pour télécharger le fichier Excel
+    status.textContent = '⏳ Téléchargement du fichier Excel...';
+    const form = new FormData();
+    form.append('_token',       token);
+    form.append('current_state', state);
+    form.append('date_start',   dstart);
+    form.append('date_end',     dend);
+    form.append('code_wilaya',  '');
+    form.append('shipper_id',   '');
+    form.append('partenaire_id','');
+    form.append('operation',    '');
+    form.append('prestation',   '');
+    form.append('commercial_id','');
+
+    const xlsResp = await fetch(`${base}/admin/excel/data`, {
+      method: 'POST',
+      credentials: 'include',
+      body: form
+    });
+
+    if (!xlsResp.ok) throw new Error('Erreur téléchargement: '+xlsResp.status);
+
+    const blob    = await xlsResp.blob();
+    const arrBuf  = await blob.arrayBuffer();
+
+    status.textContent = '⏳ Analyse du fichier...';
+
+    // STEP 3 : Parser le XLSX avec SheetJS
+    if (typeof XLSX === 'undefined') {
+      await loadSheetJS();
+    }
+
+    const wb   = XLSX.read(new Uint8Array(arrBuf), { type: 'array' });
+    const ws   = wb.Sheets[wb.SheetNames[0]];
+    const data = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+    if (!data || data.length === 0) throw new Error('Fichier vide ou format non reconnu.');
+
+    const headers = Object.keys(data[0]);
+    status.textContent = `✅ ${data.length.toLocaleString('fr-DZ')} colis importés (${dstart} → ${dend})`;
+    status.style.color = 'var(--green)';
+
+    showNotif(`✅ ${data.length.toLocaleString('fr-DZ')} colis chargés !`);
+    renderCSVfromJSON(data, headers);
+
+  } catch(e) {
+    status.textContent = '⚠ ' + e.message;
+    status.style.color = 'var(--red)';
+  }
+}
+
+// ── LOAD SHEETJS ──
+function loadSheetJS() {
+  return new Promise((resolve, reject) => {
+    if (typeof XLSX !== 'undefined') { resolve(); return; }
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    s.onload  = resolve;
+    s.onerror = () => reject(new Error('Impossible de charger SheetJS'));
+    document.head.appendChild(s);
+  });
+}
+
+// ── RENDER depuis JSON (XLSX parsé) ──
+function renderCSVfromJSON(rows, headers) {
+  // Convertir en format compatible avec renderCSV
+  const sep = ';';
+  const csvHeader = headers.join(sep);
+  const csvLines  = rows.map(r => headers.map(h => r[h]||'').join(sep));
+  const csvText   = [csvHeader, ...csvLines].join('\n');
+  csvRows = rows; // stocker pour filtres
+  parseCSV(csvText);
+}
+
+// ── BroadcastChannel (fallback bookmarklet) ──
+const bc = new BroadcastChannel('imir_csv');
+bc.onmessage = (e) => {
+  if(e.data.type === 'csv') {
+    showNotif('📥 CSV reçu !');
+    parseCSV(e.data.data);
+  }
+};
+
+// ── DRAG & DROP ──
+const dz = document.getElementById('drop-zone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+dz.addEventListener('drop', e => {
+  e.preventDefault(); dz.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if(file) readFile(file);
+});
+
+function handleFile(e) { if(e.target.files[0]) readFile(e.target.files[0]); }
+
+function readFile(file) {
+  showNotif('📂 Lecture du fichier : ' + file.name);
+  const reader = new FileReader();
+  reader.onload = (e) => parseCSV(e.target.result);
+  reader.readAsText(file, 'UTF-8');
+}
+
+// ── PARSE CSV ──
+let csvRows = [];
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  if(lines.length < 2) return;
+  const sep = lines[0].includes(';') ? ';' : ',';
+  const headers = lines[0].split(sep).map(h => h.trim().replace(/['"]/g,''));
+
+  csvRows = lines.slice(1).filter(l => l.trim()).map(line => {
+    const vals = line.split(sep).map(v => v.trim().replace(/^["']|["']$/g,''));
+    const row = {};
+    headers.forEach((h, i) => row[h] = vals[i] || '');
+    return row;
+  });
+
+  renderCSV(csvRows, headers);
+  document.getElementById('dash').style.display = 'block';
+  document.getElementById('foot').style.display = 'flex';
+  setDot('live', 'CSV + API CHARGÉS');
+}
+
+// ── RENDER CSV ──
+function renderCSV(rows, headers) {
+  const n = rows.length;
+  document.getElementById('csv-sec').style.display = 'block';
+  document.getElementById('csv-detail-sec').style.display = 'block';
+  document.getElementById('parcels-sec').style.display = 'block';
+  document.getElementById('csv-src').textContent = n.toLocaleString('fr-DZ') + ' colis';
+
+  // Détecter colonnes
+  const col = (names) => headers.find(h => names.some(n => h.toLowerCase().includes(n.toLowerCase()))) || '';
+  const C = {
+    status:  col(['statut','status','etat','état']),
+    wilaya:  col(['wilaya','destination','ville']),
+    station: col(['station','agence','hub']),
+    cod:     col(['cod','montant','prix','amount']),
+    track:   col(['tracking','track','suivi','numéro','numero','id']),
+    name:    col(['nom','name','destinataire','client','recipient']),
+    date:    col(['date','livraison','created']),
+    phone:   col(['phone','tel','mobile']),
+  };
+
+  // Comptages
+  const byStatus  = {}, byWilaya = {}, byStation = {};
+  let codTotal = 0, codLivre = 0, codRetour = 0;
+  let livre = 0, retour = 0, suspend = 0, encours = 0;
+
+  rows.forEach(r => {
+    const st = r[C.status] || 'Inconnu';
+    byStatus[st] = (byStatus[st]||0) + 1;
+
+    const sl = st.toLowerCase();
+    if(/livr|deliver|terminé/i.test(sl)) livre++;
+    else if(/retour|return|echec|refus/i.test(sl)) retour++;
+    else if(/suspen|bloq/i.test(sl)) suspend++;
+    else encours++;
+
+    const wil = r[C.wilaya] || '';
+    if(wil) byWilaya[wil] = (byWilaya[wil]||0) + 1;
+
+    const sta = r[C.station] || '';
+    if(sta) byStation[sta] = (byStation[sta]||0) + 1;
+
+    const cod = parseFloat((r[C.cod]||'0').replace(/[^\d.]/g,'')) || 0;
+    if(cod) {
+      codTotal += cod;
+      if(/livr|deliver/i.test(sl)) codLivre += cod;
+      if(/retour|return/i.test(sl)) codRetour += cod;
+    }
+  });
+
+  const taux = n ? Math.round(livre/n*100) : 0;
+  const f  = x => Number(x).toLocaleString('fr-DZ');
+  const fda= x => x ? Math.round(x).toLocaleString('fr-DZ')+' DA' : '—';
+
+  // KPI CSV cards
+  const cards = [
+    {l:'TOTAL COLIS',  v:f(n),      s:'Dans l\'export',       c:'var(--text)',   pct:null},
+    {l:'LIVRÉS',       v:f(livre),  s:taux+'% du total',      c:'var(--green)',  pct:taux},
+    {l:'RETOURNÉS',    v:f(retour), s:n?Math.round(retour/n*100)+'% du total':'', c:'var(--red)', pct:n?Math.round(retour/n*100):0},
+    {l:'SUSPENDUS',    v:f(suspend),s:'En attente',           c:'var(--yellow)', pct:null},
+    {l:'EN COURS',     v:f(encours),s:'Transit/livraison',    c:'var(--blue)',   pct:null},
+    {l:'TAUX LIVRAISON',v:taux+'%', s:'Livrés/total',         c:taux>=70?'var(--green)':taux>=50?'var(--yellow)':'var(--red)', pct:taux},
+    {l:'COD TOTAL',    v:fda(codTotal), s:'Collecté: '+fda(codLivre), c:'var(--yellow)', pct:null},
+    {l:'COD RETOURS',  v:fda(codRetour), s:'À récupérer',     c:'var(--orange)', pct:null},
+  ];
+
+  document.getElementById('kgrid-csv').innerHTML = cards.map((c,i)=>`
+    <div class="kcard" style="--c:${c.c};animation-delay:${i*.04}s">
+      <div class="klabel">${c.l}</div>
+      <div class="kval">${c.v}</div>
+      <div class="ksub">${c.s}</div>
+      ${c.pct!==null?`<div class="bar-bg"><div class="bar-fill" data-pct="${c.pct}" style="background:${c.c}"></div></div>`:''}
+    </div>`).join('');
+
+  // WILAYAS
+  const wilayas = Object.entries(byWilaya).sort((a,b)=>b[1]-a[1]).slice(0,15);
+  document.getElementById('wil-badge').textContent = Object.keys(byWilaya).length+' wilayas';
+  document.getElementById('wil-content').innerHTML = `<table class="tbl">
+    <thead><tr><th>WILAYA</th><th>COLIS</th><th>%</th></tr></thead>
+    <tbody>${wilayas.map(([w,c])=>`<tr>
+      <td>${w}</td>
+      <td class="tnum" style="color:var(--green)">${f(c)}</td>
+      <td><span class="tbadge" style="background:rgba(0,212,170,.1);color:var(--green)">${Math.round(c/n*100)}%</span></td>
+    </tr>`).join('')}</tbody></table>`;
+
+  // STATIONS
+  const stations = Object.entries(byStation).sort((a,b)=>b[1]-a[1]).slice(0,15);
+  document.getElementById('sta-badge').textContent = Object.keys(byStation).length+' stations';
+  document.getElementById('sta-content').innerHTML = stations.length ? `<table class="tbl">
+    <thead><tr><th>STATION</th><th>COLIS</th><th>%</th></tr></thead>
+    <tbody>${stations.map(([s,c])=>`<tr>
+      <td>${s}</td>
+      <td class="tnum" style="color:var(--blue)">${f(c)}</td>
+      <td><span class="tbadge" style="background:rgba(74,158,255,.1);color:var(--blue)">${Math.round(c/n*100)}%</span></td>
+    </tr>`).join('')}</tbody></table>` : '<div style="color:var(--dim);font-size:12px;font-family:var(--mono)">Colonne station non trouvée dans le CSV</div>';
+
+  // COD
+  document.getElementById('cod-badge').textContent = fda(codTotal);
+  document.getElementById('cod-content').innerHTML = `
+    <div class="srow"><div class="sname">COD Total</div><div class="scount" style="color:var(--yellow)">${fda(codTotal)}</div></div>
+    <div class="srow"><div class="sname">Livré (encaissé)</div><div class="scount" style="color:var(--green)">${fda(codLivre)}</div></div>
+    <div class="srow"><div class="sname">Retour (à récup.)</div><div class="scount" style="color:var(--red)">${fda(codRetour)}</div></div>
+    <div class="srow"><div class="sname">Taux collection</div><div class="scount" style="color:${codTotal&&codLivre/codTotal>=.7?'var(--green)':'var(--yellow)'}">${codTotal?Math.round(codLivre/codTotal*100):0}%</div></div>`;
+
+  // STATUTS
+  const statuts = Object.entries(byStatus).sort((a,b)=>b[1]-a[1]);
+  document.getElementById('stat-total').textContent = f(n)+' colis';
+  document.getElementById('stat-list').innerHTML = statuts.map(([s,c])=>{
+    const pct = Math.round(c/n*100);
+    const col = sColor(s);
+    return `<div class="srow">
+      <div style="flex:1"><div class="sname"><div class="sdot" style="background:${col}"></div>${s}</div>
+      <div class="bar-mini"><div class="bar-mini-fill" data-pct="${pct}" style="background:${col}"></div></div></div>
+      <div style="margin-left:12px;text-align:right"><div class="scount" style="color:${col}">${f(c)}</div><span class="spct">${pct}%</span></div>
+    </div>`;
+  }).join('');
+
+  // FILTERS
+  const statOptions = [...new Set(rows.map(r=>r[C.status]).filter(Boolean))];
+  const wilOptions  = [...new Set(rows.map(r=>r[C.wilaya]).filter(Boolean))].sort();
+  document.getElementById('filter-status').innerHTML = '<option value="">Tous statuts</option>'+statOptions.map(s=>`<option>${s}</option>`).join('');
+  document.getElementById('filter-wilaya').innerHTML = '<option value="">Toutes wilayas</option>'+wilOptions.map(w=>`<option>${w}</option>`).join('');
+
+  // TABLE
+  renderTable(rows, headers, C);
+  setTimeout(animBars, 300);
+  window._csvCols = C;
+}
+
+function renderTable(rows, headers, C) {
+  const cols = [C.track, C.name, C.wilaya, C.station, C.status, C.cod, C.date].filter(Boolean);
+  const labels = {[C.track]:'TRACKING',[C.name]:'DESTINATAIRE',[C.wilaya]:'WILAYA',[C.station]:'STATION',[C.status]:'STATUT',[C.cod]:'COD',[C.date]:'DATE'};
+  document.getElementById('ptbl-head').innerHTML = cols.map(c=>`<th onclick="sortTable('${c}')">${labels[c]||c} ↕</th>`).join('');
+  document.getElementById('parcels-count').textContent = rows.length.toLocaleString('fr-DZ')+' colis';
+  document.getElementById('ptbl-body').innerHTML = rows.slice(0,300).map(r=>{
+    const st = r[C.status]||'';
+    const cod = parseFloat((r[C.cod]||'0').replace(/[^\d.]/g,''))||0;
+    return `<tr>${cols.map(c=>{
+      if(c===C.status) return `<td><span class="stag" style="${stStyle(st)}">${st}</span></td>`;
+      if(c===C.cod) return `<td style="font-family:var(--mono);font-weight:700;color:var(--yellow)">${cod?Math.round(cod).toLocaleString('fr-DZ')+' DA':'—'}</td>`;
+      return `<td>${r[c]||'—'}</td>`;
+    }).join('')}</tr>`;
+  }).join('');
+}
+
+function filterTable() {
+  const q   = document.getElementById('search-input').value.toLowerCase();
+  const fst = document.getElementById('filter-status').value;
+  const fwil= document.getElementById('filter-wilaya').value;
+  const C   = window._csvCols || {};
+  const filtered = csvRows.filter(r => {
+    const matchQ   = !q   || Object.values(r).some(v=>(v||'').toLowerCase().includes(q));
+    const matchSt  = !fst || r[C.status]===fst;
+    const matchWil = !fwil|| r[C.wilaya]===fwil;
+    return matchQ && matchSt && matchWil;
+  });
+  document.getElementById('parcels-count').textContent = filtered.length.toLocaleString('fr-DZ')+'/'+csvRows.length.toLocaleString('fr-DZ')+' colis';
+  const C2 = window._csvCols||{};
+  const cols = [C2.track,C2.name,C2.wilaya,C2.station,C2.status,C2.cod,C2.date].filter(Boolean);
+  document.getElementById('ptbl-body').innerHTML = filtered.slice(0,300).map(r=>{
+    const st = r[C2.status]||'';
+    const cod= parseFloat((r[C2.cod]||'0').replace(/[^\d.]/g,''))||0;
+    return `<tr>${cols.map(c=>{
+      if(c===C2.status) return `<td><span class="stag" style="${stStyle(st)}">${st}</span></td>`;
+      if(c===C2.cod) return `<td style="font-family:var(--mono);font-weight:700;color:var(--yellow)">${cod?Math.round(cod).toLocaleString('fr-DZ')+' DA':'—'}</td>`;
+      return `<td>${r[c]||'—'}</td>`;
+    }).join('')}</tr>`;
+  }).join('');
+}
+
+let _sortDir = {};
+function sortTable(col) {
+  _sortDir[col] = !_sortDir[col];
+  csvRows.sort((a,b) => {
+    const va = a[col]||'', vb = b[col]||'';
+    const na = parseFloat(va), nb = parseFloat(vb);
+    if(!isNaN(na)&&!isNaN(nb)) return _sortDir[col] ? na-nb : nb-na;
+    return _sortDir[col] ? va.localeCompare(vb) : vb.localeCompare(va);
+  });
+  filterTable();
+}
+
+// ── API STATS ──
+const auths = k => [
+  {'Authorization':`Bearer ${k}`,'Content-Type':'application/json'},
+  {'Authorization':`Token ${k}`,'Content-Type':'application/json'},
+  {'X-API-KEY':k,'Content-Type':'application/json'},
+];
+
+let allData = {};
+async function go() {
+  allData = {};
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('btn').disabled = true;
+  document.getElementById('alert-bar').style.display = 'none';
+  setDot('','CONNEXION...');
+
+  const base = BASE(), key = KEY();
+  let stats = null;
+  for(const h of auths(key)) {
+    try {
+      const r = await fetch(`${base}/api/v1/statistics`, {headers:h});
+      if(r.ok) { stats = await r.json(); break; }
+    } catch{}
+  }
+
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('btn').disabled = false;
+
+  if(!stats) { setDot('err','ERREUR API'); return; }
+  allData.statistics = stats;
+  renderAPI(stats);
+  setDot('live','API OK');
+  document.getElementById('ts').textContent = new Date().toLocaleString('fr-DZ');
+  document.getElementById('dash').style.display = 'block';
+  document.getElementById('foot').style.display = 'flex';
+  setTimeout(animBars, 300);
+  setTimeout(pushN8N, 1000);
+}
+
+function renderAPI(s) {
+  const today  = s.today_act || {};
+  const global = s.global    || {};
+  const livre   = today.delivered||0, exp=today.expedie||0, ret=today.returned||0, sus=today.suspended||0;
+  const total   = livre+exp+ret+sus;
+  const taux    = total?Math.round(livre/total*100):0;
+  window._kpis  = {livre,expedie:exp,retourne:ret,suspend:sus,total,taux,cod:0,cod_ok:0};
+
+  const f = n => Number(n).toLocaleString('fr-DZ');
+  const cards = [
+    {l:'TOTAL JOUR',      v:f(total),  s:'Activité du jour',      c:'var(--text)', pct:null},
+    {l:'LIVRÉS',          v:f(livre),  s:taux+'% du total',       c:'var(--green)',pct:taux},
+    {l:'RETOURNÉS',       v:f(ret),    s:total?Math.round(ret/total*100)+'% du total':'', c:'var(--red)',   pct:total?Math.round(ret/total*100):0},
+    {l:'SUSPENDUS',       v:f(sus),    s:'En attente décision',   c:'var(--yellow)',pct:null},
+    {l:'EXPÉDIÉS',        v:f(exp),    s:'En transit',            c:'var(--blue)', pct:null},
+    {l:'TAUX LIVRAISON',  v:taux+'%',  s:'Livrés/total jour',     c:taux>=70?'var(--green)':taux>=50?'var(--yellow)':'var(--red)',pct:taux},
+  ];
+  document.getElementById('kgrid-api').innerHTML = cards.map((c,i)=>`
+    <div class="kcard" style="--c:${c.c};animation-delay:${i*.05}s">
+      <div class="klabel">${c.l}</div><div class="kval">${c.v}</div><div class="ksub">${c.s}</div>
+      ${c.pct!==null?`<div class="bar-bg"><div class="bar-fill" data-pct="${c.pct}" style="background:${c.c}"></div></div>`:''}
+    </div>`).join('');
+
+  // Statuts
+  document.getElementById('stat-total').textContent = f(total)+' colis';
+  const statuts = [{n:'Livrés',c:livre,col:'var(--green)'},{n:'Suspendus',c:sus,col:'var(--yellow)'},{n:'Retournés',c:ret,col:'var(--red)'},{n:'Expédiés',c:exp,col:'var(--blue)'}].filter(s=>s.c>0);
+  document.getElementById('stat-list').innerHTML = statuts.map(s=>{
+    const pct=total?Math.round(s.c/total*100):0;
+    return `<div class="srow">
+      <div style="flex:1"><div class="sname"><div class="sdot" style="background:${s.col}"></div>${s.n}</div>
+      <div class="bar-mini"><div class="bar-mini-fill" data-pct="${pct}" style="background:${s.col}"></div></div></div>
+      <div style="margin-left:12px;text-align:right"><div class="scount" style="color:${s.col}">${f(s.c)}</div><span class="spct">${pct}%</span></div>
+    </div>`;
+  }).join('');
+
+  // Global
+  document.getElementById('p2-title').textContent = 'STOCK GLOBAL';
+  document.getElementById('p2-badge').textContent = 'depuis création';
+  document.getElementById('p2-content').innerHTML = `
+    <div class="srow"><div class="sname">Total créés</div><div class="scount">${f(global.total||0)}</div></div>
+    <div class="srow"><div class="sname">Livrés</div><div class="scount" style="color:var(--green)">${f(global.livred||0)}</div></div>
+    <div class="srow"><div class="sname">Retours</div><div class="scount" style="color:var(--red)">${f(global.retours||0)}</div></div>
+    <div class="srow"><div class="sname">En traitement</div><div class="scount" style="color:var(--blue)">${f(global.enTraitement||0)}</div></div>
+    <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border);font-family:var(--mono);font-size:10px;color:var(--muted)">
+      Pour les détails wilaya/station/COD → importe le CSV via le bookmarklet
+    </div>`;
+}
+
+// ── UTILS ──
+function sColor(s){const sl=(s||'').toLowerCase();if(/livr|deliver|terminé/i.test(sl))return'var(--green)';if(/retour|return|echec|refus/i.test(sl))return'var(--red)';if(/suspen|bloq/i.test(sl))return'var(--yellow)';if(/cours|transit|livraison|progress/i.test(sl))return'var(--blue)';return'var(--muted)';}
+function stStyle(s){const c=sColor(s);const bg=c.replace(')',', .15)').replace('var(','rgba(').replace('--green','0,212,170').replace('--red','255,77,109').replace('--yellow','255,209,102').replace('--blue','74,158,255').replace('--muted','107,122,146');return`background:${bg};color:${c}`;}
+function animBars(){document.querySelectorAll('.bar-fill,.bar-mini-fill').forEach(el=>el.style.width=(el.dataset.pct||0)+'%');}
+function setDot(st,lbl){document.getElementById('dot').className='dot '+st;document.getElementById('clbl').textContent=lbl;}
+function showNotif(msg){const n=document.createElement('div');n.style.cssText='position:fixed;bottom:20px;right:20px;background:var(--green);color:#000;font-family:var(--mono);font-size:12px;padding:12px 20px;z-index:9999;animation:fadeup .3s ease';n.textContent=msg;document.body.appendChild(n);setTimeout(()=>n.remove(),4000);}
+
+// ── N8N PUSH ──
+async function pushN8N() {
+  const K=window._kpis||{};
+  const stat=document.getElementById('wb-status');
+  if(stat)stat.textContent='⏳ Push N8N...';
+  try{
+    const r=await fetch(N8N,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+      source:'IMIR_Dashboard',timestamp:new Date().toISOString(),
+      date:new Date().toLocaleDateString('fr-DZ',{weekday:'long',year:'numeric',month:'long',day:'numeric'}),
+      kpis:{total:K.total,livre:K.livre,en_cours:K.expedie,retourne:K.retourne,suspend:K.suspend,taux_livraison:K.taux,cod_total:K.cod},
+      alertes:{has_alert:K.taux<70||(K.total?Math.round(K.retourne/K.total*100):0)>20,taux_faible:K.taux<70}
+    })});
+    if(stat)stat.textContent=r.ok?'✅ N8N OK':'⚠ N8N erreur';
+  }catch(e){if(stat)stat.textContent='⚠ '+e.message;}
+}
+
+// ── AUTO-REFRESH ──
+let _cdTimer=null,_cdSec=3600,_refreshSec=3600;
+function changeRefresh(){_refreshSec=parseInt(document.getElementById('ref-sel').value);clearInterval(_cdTimer);if(_refreshSec===0){const el=document.getElementById('next-refresh');if(el)el.textContent='⏱ Mode manuel';return;}_cdSec=_refreshSec;startCountdown();}
+function startCountdown(){_cdSec=_refreshSec;clearInterval(_cdTimer);if(_refreshSec===0)return;_cdTimer=setInterval(()=>{_cdSec--;const m=Math.floor(_cdSec/60),s=_cdSec%60;const el=document.getElementById('next-refresh');if(el)el.textContent='⏱ '+m+'m'+String(s).padStart(2,'0')+'s';if(_cdSec<=0){clearInterval(_cdTimer);go();}},1000);}
+
+window.addEventListener('load',()=>{
+  const today = new Date().toISOString().split('T')[0];
+  const es = document.getElementById('exp-start');
+  const ee = document.getElementById('exp-end');
+  if(es) es.value = today;
+  if(ee) ee.value = today;
+  setTimeout(()=>{go();setTimeout(startCountdown,2000);},400);
+});
+</script>
+</body>
+</html>
